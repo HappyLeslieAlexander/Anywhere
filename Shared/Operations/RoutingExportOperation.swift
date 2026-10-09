@@ -114,7 +114,9 @@ struct RoutingExportOperation {
                 } else if ruleSet.isCustom {
                     tier = .user
                 } else {
-                    tier = ruleSet.name == "ADBlock" ? .adBlock : .builtIn
+                    // The only remaining built-in set is ADBlock; the preset
+                    // per-application routing blocks were removed.
+                    tier = .adBlock
                 }
                 entries.append(.init(tier: tier, action: action, configId: configId, name: ruleSet.name, rules: rules))
             }
