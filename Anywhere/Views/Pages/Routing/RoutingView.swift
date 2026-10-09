@@ -55,14 +55,6 @@ struct RoutingView: View {
                     }
                     .disabled(appSettings.isGlobalMode)
                 }
-                Section {
-                    ForEach(routingRuleSetStore.builtInServiceRuleSets) { ruleSet in
-                        if !ruleSet.isCustom {
-                            builtInRuleSetRow(for: ruleSet)
-                        }
-                    }
-                }
-                .disabled(appSettings.isGlobalMode)
                 if !routingRuleSetStore.customRuleSets.isEmpty {
                     Section {
                         ForEach(routingRuleSetStore.customRuleSets) { customRuleSet in
@@ -203,19 +195,6 @@ struct RoutingView: View {
         }
     }
     
-    @ViewBuilder
-    private func builtInRuleSetRow(for ruleSet: RoutingRuleSet) -> some View {
-        HStack {
-            AppIconView(ruleSet.name)
-            Text(ruleSet.name)
-            Spacer()
-            AssignmentMenuButton(selection: Binding(
-                get: { ruleSet.assignedConfigurationId },
-                set: { operations.routingRuleSets.updateAssignment(ruleSet, configurationId: $0) }
-            ))
-        }
-    }
-
     @ViewBuilder
     private func customRuleSetRow(for ruleSet: CustomRoutingRuleSet) -> some View {
         HStack {
