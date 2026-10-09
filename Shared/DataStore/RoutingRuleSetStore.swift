@@ -93,15 +93,8 @@ class RoutingRuleSetStore {
     var adBlockRuleSet: RoutingRuleSet? {
         ruleSets.first(where: { $0.id == "ADBlock" })
     }
-    var builtInServiceRuleSets: [RoutingRuleSet] {
-        ruleSets.filter { $0.id != "ADBlock" }
-    }
 
-    nonisolated private static let builtIn: [String] = {
-        serviceCatalog.supportedServices + ["ADBlock"]
-    }()
-
-    nonisolated private static let serviceCatalog = ServiceCatalog.load()
+    nonisolated private static let builtIn: [String] = ["ADBlock"]
 
     @ObservationIgnored private let syncStore: SyncStore
     @ObservationIgnored private var loadedItems: [Data]?
@@ -119,6 +112,16 @@ class RoutingRuleSetStore {
         customTombstones = split.tombstones
 
         rebuildRuleSets(assignments: assignments)
+
+        // 一次性迁移：清掉用户以前给已移除的预设应用程序分流设置块存的 assignment
+        //（例如曾把某个预设块指定到某个代理），避免僵尸键永远留在存储里。
+        var mutableAssignments = assignments
+        let knownIds = Set(ruleSets.map(\.id))
+        let staleKeys = mutableAssignments.keys.filter { !knownIds.contains($0) }
+        if !staleKeys.isEmpty {
+            for key in staleKeys { mutableAssignments.removeValue(forKey: key) }
+            AWCore.setRuleSetAssignments(mutableAssignments)
+        }
     }
     
     func reload() async {
@@ -173,10 +176,6 @@ class RoutingRuleSetStore {
     }
 
     func resetAssignments() {
-        for builtInServiceRuleSet in builtInServiceRuleSets {
-            guard let index = ruleSets.firstIndex(where: { $0.id == builtInServiceRuleSet.id }) else { continue }
-            ruleSets[index].assignedConfigurationId = nil
-        }
         for customRuleSet in customRuleSets {
             guard let index = ruleSets.firstIndex(where: { $0.id == customRuleSet.id.uuidString }) else { continue }
             ruleSets[index].assignedConfigurationId = nil
@@ -278,10 +277,7 @@ class RoutingRuleSetStore {
     // MARK: - Rules
     
     nonisolated static func loadRules(for name: String) -> [RoutingRule] {
-        if name != "ADBlock" {
-            return serviceCatalog.rules(for: name)
-        }
-        return RoutingRulesDatabase.shared.loadRules(for: name)
+        RoutingRulesDatabase.shared.loadRules(for: name)
     }
 
     // MARK: - Persistence
