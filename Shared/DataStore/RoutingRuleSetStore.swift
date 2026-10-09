@@ -93,15 +93,8 @@ class RoutingRuleSetStore {
     var adBlockRuleSet: RoutingRuleSet? {
         ruleSets.first(where: { $0.id == "ADBlock" })
     }
-    var builtInServiceRuleSets: [RoutingRuleSet] {
-        ruleSets.filter { $0.id != "ADBlock" }
-    }
 
-    nonisolated private static let builtIn: [String] = {
-        serviceCatalog.supportedServices + ["ADBlock"]
-    }()
-
-    nonisolated private static let serviceCatalog = ServiceCatalog.load()
+    nonisolated private static let builtIn: [String] = ["ADBlock"]
 
     @ObservationIgnored private let syncStore: SyncStore
     @ObservationIgnored private var loadedItems: [Data]?
@@ -119,6 +112,17 @@ class RoutingRuleSetStore {
         customTombstones = split.tombstones
 
         rebuildRuleSets(assignments: assignments)
+
+        // One-time migration: drop assignments for the removed preset
+        // per-application routing blocks (e.g. a user had pinned one of
+        // them to a proxy), so no orphaned keys linger in storage.
+        var mutableAssignments = assignments
+        let knownIds = Set(ruleSets.map(\.id))
+        let staleKeys = mutableAssignments.keys.filter { !knownIds.contains($0) }
+        if !staleKeys.isEmpty {
+            for key in staleKeys { mutableAssignments.removeValue(forKey: key) }
+            AWCore.setRuleSetAssignments(mutableAssignments)
+        }
     }
     
     func reload() async {
@@ -173,10 +177,6 @@ class RoutingRuleSetStore {
     }
 
     func resetAssignments() {
-        for builtInServiceRuleSet in builtInServiceRuleSets {
-            guard let index = ruleSets.firstIndex(where: { $0.id == builtInServiceRuleSet.id }) else { continue }
-            ruleSets[index].assignedConfigurationId = nil
-        }
         for customRuleSet in customRuleSets {
             guard let index = ruleSets.firstIndex(where: { $0.id == customRuleSet.id.uuidString }) else { continue }
             ruleSets[index].assignedConfigurationId = nil
@@ -278,10 +278,7 @@ class RoutingRuleSetStore {
     // MARK: - Rules
     
     nonisolated static func loadRules(for name: String) -> [RoutingRule] {
-        if name != "ADBlock" {
-            return serviceCatalog.rules(for: name)
-        }
-        return RoutingRulesDatabase.shared.loadRules(for: name)
+        RoutingRulesDatabase.shared.loadRules(for: name)
     }
 
     // MARK: - Persistence

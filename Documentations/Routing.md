@@ -79,7 +79,6 @@ one **assigned action** that applies to every rule in the set.
 
 | Origin            | Editable rules | Source                                   |
 | ----------------- | -------------- | ---------------------------------------- |
-| Built-in services | no             | bundled rules database (per service)     |
 | ADBlock           | no             | bundled rules database                   |
 | Custom            | yes            | authored in-app, imported, or subscribed |
 
@@ -153,10 +152,9 @@ decides, and lower tiers are not consulted.
 | Order | Tier           | Contents                                       |
 | ----- | -------------- | ---------------------------------------------- |
 | 1     | ADBlock        | the bundled ad/tracker block list              |
-| 2     | Built-in       | the per-service rule sets                      |
-| 3     | User           | your custom rule sets                          |
-| 4     | Neutral        | any set left on **Default**, whatever its origin |
-| 5     | Country Bypass | direct-routes the selected region (implicit)   |
+| 2     | User           | your custom rule sets                          |
+| 3     | Neutral        | any set left on **Default**, whatever its origin |
+| 4     | Country Bypass | direct-routes the selected region (implicit)   |
 
 A set loads into the tier matching its origin only while it carries an
 explicit action — **PROXY** included, even though it routes to the same target
@@ -330,8 +328,7 @@ name = Direct Nets
 ```
 
 Assign the set to **DIRECT**. The explicit action puts it in the User tier,
-above any set left on Default — but below a built-in service set you assigned
-a target. Leave built-ins on Default if a LAN rule must win.
+above any set left on Default.
 
 ### Prefer a specific subdomain over a broad one
 
@@ -351,7 +348,7 @@ deeper suffix wins within the tier regardless of set order.
   via their resolved IPv4.
 - **Reject is enforced early.** Reject-matched domains get null DNS answers;
   reject-marked domains and IPs are dropped at packet intake.
-- **First tier wins.** ADBlock > Built-in > User > Neutral > Country Bypass; a
+- **First tier wins.** ADBlock > User > Neutral > Country Bypass; a
   higher tier beats a more-specific rule in a lower one.
 - **Most-specific wins within a tier.** Deepest suffix, longest keyword,
   longest CIDR prefix; suffix before keyword; identical patterns go to the
