@@ -114,7 +114,8 @@ struct RoutingExportOperation {
                 } else if ruleSet.isCustom {
                     tier = .user
                 } else {
-                    tier = ruleSet.name == "ADBlock" ? .adBlock : .builtIn
+                    // 内建集合只剩 ADBlock；预设应用程序分流设置块已移除。
+                    tier = .adBlock
                 }
                 entries.append(.init(tier: tier, action: action, configId: configId, name: ruleSet.name, rules: rules))
             }
